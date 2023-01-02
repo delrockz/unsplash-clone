@@ -16,7 +16,7 @@
 }
 
 .fixedcontainer {
-  max-width: 1100px;
+  max-width: 1366px;
   margin: 0 auto;
   padding: var(--standardspacing);
   position: relative;
@@ -27,8 +27,8 @@
   overflow-x: auto;
   white-space: nowrap;
   text-align: left;
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .nopadding::-webkit-scrollbar {
@@ -44,5 +44,20 @@
 @media (min-width: 1775px) {
   .fixedcontainer {
     max-width: 1700px;
+  }
+}
+
+.center-cropped {
+  object-fit: cover;
+  object-position: center;
+  height: 95vh;
+  width: 100vw;
+  filter: brightness(50%);
+}
+
+@media (max-width: 768px) {
+  .center-cropped {
+    height: 300px;
+    margin-top: 100px !important;
   }
 }

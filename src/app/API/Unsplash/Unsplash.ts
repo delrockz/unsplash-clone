@@ -1,58 +1,23 @@
-import axios from 'axios'
-import { links } from '../../statics/links'
+import { IPhoto } from '../../../interfaces/IPhoto'
+import { ITopic } from '../../../interfaces/ITopic'
+import { getPhotoByIdService, getTopicsService } from '../../store/sagas/requests'
 
-export const getImages = async (callback: any) => {
+export const getTopics = async (callback: (err: any, response: ITopic[]) => void) => {
   try {
-    const response = await axios.get(import.meta.env.VITE_UNSPLASH_API_ENDPOINT + '/photos/random', {
-      headers: {
-        Authorization: `Client-ID ${import.meta.env.VITE_UNSPLASH_ACCESS_KEY}`
-      }
-    })
+    const response = await getTopicsService()
     return callback(null, response.data)
   } catch (err: any) {
     console.log(err)
-    return callback(err.message)
+    return callback(err.message, [] as ITopic[])
   }
 }
 
-export const getTopics = async (callback: any) => {
+export const getPhotoById = async (photoId: string, callback: (err: any, response: IPhoto) => void) => {
   try {
-    const response = await axios.get(import.meta.env.VITE_UNSPLASH_API_ENDPOINT + '/topics?per_page=25', {
-      headers: {
-        Authorization: `Client-ID ${import.meta.env.VITE_UNSPLASH_ACCESS_KEY}`
-      }
-    })
+    const response = await getPhotoByIdService(photoId)
     return callback(null, response.data)
   } catch (err: any) {
     console.log(err)
-    return callback(err.message)
-  }
-}
-
-export const getTopicPhotos = async (topic: string, callback: any) => {
-  try {
-    const response = await axios.get(`${import.meta.env.VITE_UNSPLASH_API_ENDPOINT}/topics/${topic}/photos`, {
-      headers: {
-        Authorization: `Client-ID ${import.meta.env.VITE_UNSPLASH_ACCESS_KEY}`
-      }
-    })
-    return callback(null, response.data)
-  } catch (err: any) {
-    console.log(err)
-    return callback(err.message)
-  }
-}
-
-export const getRandomPicture = async (callback: any) => {
-  try {
-    const response = await axios.get(links.getRandomPhoto, {
-      headers: {
-        Authorization: `Client-ID ${import.meta.env.VITE_UNSPLASH_ACCESS_KEY}`
-      }
-    })
-    return callback(null, response.data)
-  } catch (err: any) {
-    console.log(err)
-    return callback(err.message)
+    return callback(err.message, {} as IPhoto)
   }
 }

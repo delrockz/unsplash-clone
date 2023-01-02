@@ -1,22 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link, useLocation, withRouter } from 'react-router-dom'
-import { Button, Center, Divider, IconButton, Tab, TabList, Tabs } from '@chakra-ui/react'
+import { Link, RouteComponentProps, useLocation, withRouter } from 'react-router-dom'
+import { Center, Divider } from '@chakra-ui/react'
 import { Input, InputGroup, InputLeftElement, InputRightElement } from '@chakra-ui/input'
 
-import NotificationsIcon from '@mui/icons-material/Notifications'
 import CenterFocusWeakIcon from '@mui/icons-material/CenterFocusWeak'
 import SearchIcon from '@mui/icons-material/Search'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 
-// import { getImages, getTopicPhotos, getTopics } from '../API/Unsplash/Unsplash'
 import { ITopic } from '../../interfaces/ITopic'
-import { useDispatch } from 'react-redux'
-import { getTopicPhotos } from '../store/actions'
+import ImageSearchPopover from './ImageSearchPopover'
+import { getTopics } from '../API/Unsplash/Unsplash'
+import UnsplashButton from './UnsplashButton'
+import HamburgerPopover from '../Pages/HomePage/components/HamburgerPopover'
 
-const Header: React.FC<any> = (props) => {
+const Header: React.FC<RouteComponentProps> = (props) => {
   const location = useLocation()
-  const dispatch = useDispatch()
 
   const topicsScrollerRef = useRef<HTMLDivElement>(null)
   const leftArrow = useRef<HTMLElement>(null)
@@ -81,53 +80,47 @@ const Header: React.FC<any> = (props) => {
       else rightArrowElement.style.display = 'none'
   }
 
-  const [showNavigationMenu, setShowNavigationMenu] = useState(false)
-  const [topics, setTopics] = useState([])
-  const [showSearchModal, setShowSearchModal] = useState(false)
+  const [topics, setTopics] = useState<ITopic[]>([] as ITopic[])
 
   const headerMenu = [
-    { menu: 'Explore', id: 'explore' },
-    { menu: 'Advertise', id: 'advertise' },
+    { menu: 'Explore', id: 'explore', className: 'text-gray-400 hover:text-gray-700' },
+    { menu: 'Advertise', id: 'advertise', className: 'text-gray-400 hover:text-gray-700' },
     {
       menu: 'Unsplash+',
       id: 'unsplash',
       className: 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-600'
     }
   ]
-  const headerSubMenu = [
-    { menu: 'Wallpapers', id: 'wallpapers' },
-    { menu: '3D Renders', id: '3d-renders' },
-    { menu: 'Travel', id: 'travel' },
-    { menu: 'Nature', id: 'nature' },
-    { menu: 'Street Photography', id: 'street-photography' },
-    { menu: 'Experimental', id: 'experimental' },
-    { menu: 'Textures & Patterns', id: 'textures-patterns' },
-    { menu: 'Animals', id: 'animals' },
-    { menu: 'Architecture & Interiors', id: 'architecture-interiors' },
-    { menu: 'Fashion & Beauty', id: 'fashion-beauty' },
-    { menu: 'Film', id: 'film' },
-    { menu: 'Food & Drink', id: 'food-drink' },
-    { menu: 'People', id: 'people' },
-    { menu: 'Spirituality', id: 'spirituality' },
-    { menu: 'Business & Work', id: 'business-work' },
-    { menu: 'Athletics', id: 'athletics' },
-    { menu: 'Health & Wellness', id: 'health-wellness' },
-    { menu: 'Current Events', id: 'current-events' },
-    { menu: 'Arts & Culture', id: 'arts-culture' }
-  ]
 
   const handleGetTopics = () => {
-    // getTopics((err: any, responseData: any) => {
-    //   console.log(responseData.map((res: any) => res.title))
-    //   setTopics(
-    //     responseData.map((topic: ITopic) => ({ slug: topic.slug, title: topic.title, description: topic.description }))
-    //   )
-    // })
+    getTopics((err: any, responseData: ITopic[]) => {
+      setTopics(responseData)
+    })
   }
 
-  // useEffect(() => {
-  //   handleGetTopics()
-  // }, [])
+  useEffect(() => {
+    handleGetTopics()
+  }, [])
+
+  const [searchTerm, setSearchTerm] = useState('')
+  const [recentSearches, setRecentSearches] = useState(
+    localStorage.recentSearches ? JSON.parse(localStorage.recentSearches) : []
+  )
+
+  const handleRecentSearches = () => {
+    if (searchTerm) {
+      let newRecentSearches = [...recentSearches]
+      if (recentSearches.length >= 5) newRecentSearches.shift()
+      newRecentSearches.push(searchTerm)
+      localStorage.setItem('recentSearches', JSON.stringify(newRecentSearches))
+      setRecentSearches(newRecentSearches)
+      setSearchTerm('')
+    }
+  }
+
+  const handleSearchInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleRecentSearches()
+  }
 
   return (
     <div className='bg-white fixed top-0 w-full z-[999]'>
@@ -141,7 +134,7 @@ const Header: React.FC<any> = (props) => {
           zIndex: 99
         }}
       >
-        <div className='flex items-center py-3 gap-x-5'>
+        <div className='flex items-center py-3 gap-x-4 md:gap-x-5'>
           <Link to='/'>
             <svg
               width='32'
@@ -157,18 +150,33 @@ const Header: React.FC<any> = (props) => {
               <path d='M10 9V0h12v9H10zm12 5h10v18H0V14h10v9h12v-9z'></path>
             </svg>
           </Link>
-          <div className='w-2/3'>
-            <InputGroup>
-              <InputLeftElement pointerEvents='none' children={<SearchIcon className='ml-2 text-gray-500' />} />
-              <Input className='w-80' borderRadius={20} placeholder='Search free high-resolution photos' />
-              <InputRightElement children={<CenterFocusWeakIcon className='mr-2 text-gray-500' />} />
-            </InputGroup>
-          </div>
+          <ImageSearchPopover recentSearches={recentSearches} setRecentSearches={setRecentSearches}>
+            <div className='w-3/4 md:w-2/3'>
+              <InputGroup>
+                <InputLeftElement
+                  cursor={'pointer'}
+                  onClick={handleRecentSearches}
+                  children={<SearchIcon className='ml-2 mt-1 text-gray-500' />}
+                />
+                <Input
+                  bg='gray.50'
+                  borderRadius={20}
+                  onKeyDown={handleSearchInputKeyDown}
+                  value={searchTerm}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                  placeholder='Search free high-resolution photos'
+                />
+                <div className='hidden md:block'>
+                  <InputRightElement children={<CenterFocusWeakIcon className='mr-2 text-gray-500 ' />} />
+                </div>
+              </InputGroup>
+            </div>
+          </ImageSearchPopover>
           <nav className='hidden md:flex space-x-5'>
             {headerMenu.map((menuItem) => (
               <button
                 type='button'
-                className={`group rounded-md inline-flex items-center text-base font-normal focus:outline-none ${
+                className={`group rounded-md inline-flex items-center text-sm font-normal focus:outline-none ${
                   menuItem.className || ''
                 }`}
                 onClick={() => props.history.push(menuItem.id)}
@@ -177,62 +185,32 @@ const Header: React.FC<any> = (props) => {
               </button>
             ))}
           </nav>
-          <Center height='30px'>
-            <Divider orientation='vertical' />
-          </Center>
-          <div className='flex items-center'>
-            <button type='button' className='w-24 group rounded-md text-base font-normal focus:outline-none'>
+          <div className='hidden md:block'>
+            <Center className='hidden md:block' height='30px'>
+              <Divider orientation='vertical' />
+            </Center>
+          </div>
+          <div className='items-center hidden md:flex text-sm '>
+            <button
+              type='button'
+              className='w-20 group rounded-md text-gray-400 hover:text-gray-700 font-normal focus:outline-none'
+            >
               Log in
             </button>
             /
-            <button type='button' className='w-24 group rounded-md text-base font-normal focus:outline-none'>
+            <button
+              type='button'
+              className='w-20 group rounded-md text-gray-400 hover:text-gray-700 font-normal focus:outline-none'
+            >
               Sign up
             </button>
           </div>
-          <Button variant={'outline'} fontWeight={400} color='gray.500'>
-            Submit <span className='hidden xl:block'> &nbsp;a photo</span>
-          </Button>
-          <div>
-            <button
-              type='button'
-              className='rounded-md p-2 inline-flex items-center justify-center text-gray-200 hover:text-gray-500 '
-              onClick={() => {
-                setShowNavigationMenu((prev) => !prev)
-              }}
-            >
-              {!showNavigationMenu ? (
-                <>
-                  <span className='sr-only'>Open menu</span>
-                  <svg
-                    className='h-6 w-6'
-                    xmlns='http://www.w3.org/2000/svg'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke-width='2'
-                    stroke='black'
-                    aria-hidden='true'
-                  >
-                    <path stroke-linecap='round' stroke-linejoin='round' d='M4 6h16M4 12h16M4 18h16' />
-                  </svg>
-                </>
-              ) : (
-                <>
-                  <span className='sr-only'>Close menu</span>
-                  <svg
-                    className='h-6 w-6'
-                    xmlns='http://www.w3.org/2000/svg'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke-width='2'
-                    stroke='currentColor'
-                    aria-hidden='true'
-                  >
-                    <path stroke-linecap='round' stroke-linejoin='round' d='M6 18L18 6M6 6l12 12' />
-                  </svg>
-                </>
-              )}
-            </button>
+          <div className='hidden md:block'>
+            <UnsplashButton>
+              Submit <span className='hidden xl:block'> &nbsp;a photo</span>
+            </UnsplashButton>
           </div>
+          <HamburgerPopover />
         </div>
       </div>
       <br />
@@ -241,8 +219,8 @@ const Header: React.FC<any> = (props) => {
       <div className='flex items-center gap-x-4 px-4'>
         <button
           type='button'
-          className={`group inline-flex items-center text-base font-normal focus:outline-none h-12 ${
-            location.pathname === '/' && 'border-b-2 border-black'
+          className={`text-gray-500 group inline-flex items-center text-sm truncate font-medium focus:outline-none mx-2 pb-2 min-w-fit h-12 ${
+            location.pathname === '/' && 'text-black border-b-2 border-black pb-1'
           }`}
           onClick={() => props.history.push('/')}
         >
@@ -256,23 +234,20 @@ const Header: React.FC<any> = (props) => {
             className='scroll-smooth fixedcontainer nopadding flex gap-x-4 items-center relative'
             ref={topicsScrollerRef}
           >
-            {headerSubMenu.map((menuItem) => (
+            {topics.map((menuItem) => (
               <button
                 type='button'
-                className={`group inline-flex items-center text-base truncate font-normal focus:outline-none mx-2 min-w-fit h-12 ${
-                  location.pathname.includes(menuItem.id) && 'border-b-2 border-black'
+                className={`text-gray-500 group inline-flex items-center text-sm truncate font-medium focus:outline-none mx-2 pb-2 min-w-fit h-12 ${
+                  location.pathname.includes(menuItem.slug) && 'text-black border-b-2 border-black pb-1'
                 }`}
-                onClick={() => {
-                  props.history.push('/t/' + menuItem.id)
-                  dispatch(getTopicPhotos(menuItem.id))
-                }}
+                onClick={() => props.history.push('/t/' + menuItem.slug)}
               >
-                <span>{menuItem.menu}</span>
+                <span>{menuItem.title}</span>
               </button>
             ))}
           </div>
           <span
-            className='absolute top-2 font-semibold justify-center cursor-pointer text-gray-500 text-base z-10 -left-6'
+            className='absolute top-1 font-semibold justify-center cursor-pointer text-gray-500 text-base z-10 -left-6'
             ref={leftArrow}
             title='Scroll list to the left'
             onClick={() => scroll(false)}
@@ -280,7 +255,7 @@ const Header: React.FC<any> = (props) => {
             <ChevronLeftIcon fontSize='large' />
           </span>
           <span
-            className='absolute top-2 font-semibold justify-center cursor-pointer text-gray-500 text-base z-10 -right-6'
+            className='absolute top-1 font-semibold justify-center cursor-pointer text-gray-500 text-base z-10 -right-6'
             ref={rightArrow}
             title='Scroll list to the right'
             onClick={() => scroll()}

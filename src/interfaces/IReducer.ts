@@ -1,3 +1,8 @@
+import { IPhoto } from './IPhoto'
+import { ITopic } from './ITopic'
+
 export interface IReducer {
-  selectedTopicData: []
+  selectedTopic: ITopic
+  selectedPhoto: IPhoto
+  editorialFeedPhotos: IPhoto[]
 }

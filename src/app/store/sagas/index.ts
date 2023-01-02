@@ -4,5 +4,7 @@ import { actions } from '../actions/constants'
 import * as handlers from './handlers'
 
 export function* watcherSaga(): SagaIterator {
-  yield all([yield takeLatest(actions.LOGIN, handlers.loginHandle)])
+  yield all([yield takeLatest(actions.GET_EDITORIAL_FEED_PHOTOS, handlers.getEditorialFeedPhotosHandle)])
+  yield all([yield takeLatest(actions.GET_TOPIC_PHOTOS, handlers.getTopicPhotosHandle)])
+  yield all([yield takeLatest(actions.GET_PHOTO_BY_ID, handlers.getPhotoByIdHandle)])
 }

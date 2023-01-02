@@ -1,63 +1,109 @@
-import { Input, InputGroup, InputLeftElement, InputRightElement } from '@chakra-ui/react'
-import React, { useState, useEffect } from 'react'
-import { useSelector } from 'react-redux'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { IReducer } from '../../../interfaces/IReducer'
-import CenterFocusWeakIcon from '@mui/icons-material/CenterFocusWeak'
-import SearchIcon from '@mui/icons-material/Search'
-import ImageSearchPopover from '../../components/ImageSearchPopover'
-import { getRandomPicture } from '../../API/Unsplash/Unsplash'
-const HomePage = () => {
-  const selectedTopicPhotos = useSelector((state: IReducer) => state.selectedTopicPhotos)
-  const [bannerData, setBannerData] = useState({})
+import { getPhotoById as getPhotoByIdAPI } from '../../API/Unsplash/Unsplash'
+import { IPhoto } from '../../../interfaces/IPhoto'
+import { getEditorialFeedPhotos, getPhotoById, getTopicPhotos } from '../../store/actions'
+import { RouteComponentProps, useLocation, withRouter } from 'react-router-dom'
+import UnsplashAwards from './components/UnsplashAwards'
+import PhotoModal from './components/PhotoModal'
+import EditorialPhotosFeed from './components/EditorialPhotosFeed'
+import TopicPhotosFeed from './components/TopicPhotosFeed'
+import EditorialBanner from './components/EditorialBanner'
+import TopicBanner from './components/TopicBanner'
 
-  const handleGetRandomPhoto = () => {
-    getRandomPicture((err: string, responseData: object) => {
+const EDITORIAL_FEED_BANNER_PHOTO_ID = 'dhgRwBZKKss' // Constant Photo ID since there is no API for editorial feed banner
+
+const HomePage: React.FC<RouteComponentProps<any>> = (props) => {
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const selectedTopic = useSelector((state: IReducer) => state.selectedTopic)
+  const selectedPhoto = useSelector((state: IReducer) => state.selectedPhoto)
+  const editorialFeedPhotos = useSelector((state: IReducer) => state.editorialFeedPhotos)
+  const [bannerData, setBannerData] = useState<IPhoto>({} as IPhoto)
+
+  const [showPhotoModal, setShowPhotoModal] = useState(false)
+  const toggleShowPhotoModal = () => setShowPhotoModal((prev) => !prev)
+
+  const handleGetEditorialFeedBanner = () =>
+    getPhotoByIdAPI(EDITORIAL_FEED_BANNER_PHOTO_ID, (err: string, responseData: IPhoto) => {
       setBannerData(responseData)
     })
-  }
+
+  const handleGetEditorialFeedPhotos = () => dispatch(getEditorialFeedPhotos({ page: 1 }))
+
+  const fetchMoreEditorialFeedPhotos = () =>
+    dispatch(getEditorialFeedPhotos({ page: editorialFeedPhotos?.length / 10 + 1 }))
+
+  const isHomePage: boolean = useMemo(() => location.pathname === '/', [location?.pathname])
 
   useEffect(() => {
-    handleGetRandomPhoto()
-  }, [])
+    if (isHomePage) {
+      handleGetEditorialFeedBanner()
+      handleGetEditorialFeedPhotos()
+    }
+  }, [isHomePage])
+
+  const fetchMoreSelectedTopicPhotos = () =>
+    dispatch(getTopicPhotos({ topic: selectedTopic.slug, page: selectedTopic.photos.length / 10 + 1 }))
+
+  useEffect(() => {
+    if (props.match.params.topic) dispatch(getTopicPhotos({ topic: props.match.params.topic, page: 1 }))
+  }, [props.match?.params?.topic])
+
+  useEffect(() => {
+    if (props.match.params.photo) handleSelectPhoto()
+  }, [props.match?.params?.photo])
+
+  const handleSelectPhoto = () => {
+    dispatch(getPhotoById(props.match.params.photo))
+    toggleShowPhotoModal()
+  }
 
   return (
-    <div>
-      <div className='h-96 grid justify-start relative'>
-        <img
-          className='center-cropped'
-          alt='Home page banner'
-          src={bannerData. || ''}
+    <>
+      {showPhotoModal && selectedPhoto && (
+        <PhotoModal
+          showPhotoModal={showPhotoModal}
+          closePhotoModal={() => props.history.goBack()}
+          photo={selectedPhoto}
         />
-        <div className='absolute left-1/2 top-1/2 text-left'>
-          <p className='my-1 p-2 text-2xl font-semibold'>Unsplash</p>
-          <p className='my-1 p-2 texl-lg'>The internet's source for visuals.</p>
-          <p className='my-1 p-2 texl-lg'>Powered by creators everywhere.</p>
-          <ImageSearchPopover>
-            <div className='w-2/3'>
-              <InputGroup>
-                <InputLeftElement pointerEvents='none' children={<SearchIcon className='ml-2 text-gray-500' />} />
-                <Input placeholder='Search free high-resolution photos' />
-                <InputRightElement children={<CenterFocusWeakIcon className='mr-2 text-gray-500' />} />
-              </InputGroup>
-            </div>
-          </ImageSearchPopover>
-          <p className='text-white'>
-            Trending
-            <a className='text-gray-500 hover:text-white'>flower</a>,
-            <a className='text-gray-500 hover:text-white'>wallpapers</a>,
-            <a className='text-gray-500 hover:text-white'>backgrounds</a>,
-            <a className='text-gray-500 hover:text-white'>happy</a>,
-            <a className='text-gray-500 hover:text-white'>love</a>
-          </p>
-          <p className='text-gray'>
-            <a className='text-gray-500 hover:text-white'>Photo</a> by{' '}
-            <a className='text-gray-500 hover:text-white'>Alex jiang</a>
-          </p>
+      )}
+      <div className='pb-20'>
+        {isHomePage ? (
+          <EditorialBanner photo={bannerData} />
+        ) : selectedTopic?.slug ? (
+          <TopicBanner selectedTopic={selectedTopic} />
+        ) : (
+          ''
+        )}
+        <br />
+        <br />
+        <div className='w-full xl:w-10/12 2xl:w-9/12 px-0 md:px-4 2xl:md:px-16 mx-auto '>
+          {isHomePage && (
+            <>
+              <UnsplashAwards />
+              <br />
+              <br />
+            </>
+          )}
+          {isHomePage && editorialFeedPhotos?.length > 0 ? (
+            <EditorialPhotosFeed
+              editorialFeedPhotos={editorialFeedPhotos}
+              fetchMoreEditorialFeedPhotos={fetchMoreEditorialFeedPhotos}
+            />
+          ) : (
+            selectedTopic?.photos?.length > 0 && (
+              <TopicPhotosFeed
+                selectedTopic={selectedTopic}
+                fetchMoreSelectedTopicPhotos={fetchMoreSelectedTopicPhotos}
+              />
+            )
+          )}
         </div>
       </div>
-      <div className='columns-2 md:columns-3 lg:columns-4'></div>
-    </div>
+    </>
   )
 }
 
-export default HomePage
+export default withRouter(HomePage)
